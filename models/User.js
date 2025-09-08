@@ -10,7 +10,7 @@ const addressSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  phone: { type: String, required: true },
+  phone: { type: String },  // Removed required: true to make it optional
   password: { type: String, required: true },
   isBusiness: { type: Boolean, default: false },
   profileImage: { type: String, default: null },
