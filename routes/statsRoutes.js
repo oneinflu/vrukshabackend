@@ -6,4 +6,7 @@ const adminAuth = require('../middleware/adminAuth');
 // Admin only route
 router.get('/', adminAuth, statsController.getStats);
 
+// Dashboard stats route
+router.get('/dashboard', adminAuth, statsController.getDashboardStats);
+
 module.exports = router;
