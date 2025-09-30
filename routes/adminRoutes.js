@@ -9,5 +9,6 @@ router.post('/login', adminController.adminLogin);
 
 // Protected admin routes
 router.post('/create', adminAuth, adminController.createAdmin);
+router.get('/users', adminAuth, adminController.getAllUsers);
 
 module.exports = router;
