@@ -35,7 +35,16 @@ const orderSchema = new mongoose.Schema({
   }],
   recurringOrders: [subOrderSchema],
   total: Number,
-  paymentMode: { type: String, enum: ['COD'], required: true },
+  paymentMethod: { 
+    type: String, 
+    enum: ['COD', 'RAZORPAY'], 
+    required: true 
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['PENDING', 'PAID', 'FAILED'],
+    default: 'PENDING'
+  },
   status: {
     type: String,
     enum: ['Order Placed', 'Processing', 'Canceled', 'Delivered'],

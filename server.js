@@ -27,7 +27,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const businessOrderRoutes = require('./routes/businessOrderRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-app.use('/api/stats', statsRoutes);
+const paymentRoutes = require('./routes/paymentRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -37,6 +37,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/business-orders', businessOrderRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
