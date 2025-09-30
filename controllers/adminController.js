@@ -1,22 +1,26 @@
 const Admin = require('../models/Admin');
+const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Admin Login
+// Admin login
 exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Check if admin exists
     const admin = await Admin.findOne({ email });
     if (!admin) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Validate password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Generate token
     const token = jwt.sign(
       { adminId: admin._id },
       process.env.JWT_SECRET,
@@ -37,19 +41,22 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
-// Admin Registration
+// Register initial admin
 exports.registerAdmin = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
+    // Check if admin exists
     let admin = await Admin.findOne({ email });
     if (admin) {
       return res.status(400).json({ message: 'Admin already exists' });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Create admin
     admin = await Admin.create({
       name,
       email,
@@ -57,6 +64,7 @@ exports.registerAdmin = async (req, res) => {
       password: hashedPassword
     });
 
+    // Generate token
     const token = jwt.sign(
       { adminId: admin._id },
       process.env.JWT_SECRET,
@@ -77,19 +85,22 @@ exports.registerAdmin = async (req, res) => {
   }
 };
 
-// Create New Admin (Protected Route)
+// Create new admin (by existing admin)
 exports.createAdmin = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
+    // Check if admin exists
     let admin = await Admin.findOne({ email });
     if (admin) {
       return res.status(400).json({ message: 'Admin already exists' });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Create admin
     admin = await Admin.create({
       name,
       email,
@@ -107,5 +118,29 @@ exports.createAdmin = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    // Get all users with selected fields (excluding password)
+    const users = await User.find({}, {
+      name: 1,
+      email: 1,
+      phone: 1,
+      isBusiness: 1,
+      profileImage: 1,
+      savedAddress: 1,
+      createdAt: 1,
+      updatedAt: 1
+    });
+
+    res.json({
+      users,
+      total: users.length
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching users', error: err.message });
   }
 };
