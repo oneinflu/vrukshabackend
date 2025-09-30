@@ -7,10 +7,10 @@ const adminAuth = require('../middleware/adminAuth');
 // User routes
 router.post('/create-order', auth, paymentController.createRazorpayOrder);
 router.post('/verify', auth, paymentController.verifyPayment);
-router.post('/record-cod', auth, paymentController.recordCODPayment);
 
 // Admin routes
 router.get('/all', adminAuth, paymentController.getAllPayments);
+router.post('/record-cod', adminAuth, paymentController.recordCODPayment);
 router.put('/update-cod-status/:paymentId', adminAuth, paymentController.updateCODPaymentStatus);
 
 module.exports = router;
