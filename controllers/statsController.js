@@ -74,3 +74,43 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ message: 'Error fetching stats', error: err.message });
   }
 };
+
+// Dashboard stats endpoint
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Get total revenue from regular orders
+    const regularOrdersRevenue = await Order.aggregate([
+      { $match: { status: 'Delivered' } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+
+    // Get total revenue from business orders
+    const businessOrdersRevenue = await BusinessOrder.aggregate([
+      { $match: { status: 'Delivered' } },
+      { $group: { _id: null, total: { $sum: '$finalAmount' } } }
+    ]);
+
+    // Calculate total revenue
+    const totalRevenue = (regularOrdersRevenue[0]?.total || 0) + (businessOrdersRevenue[0]?.total || 0);
+
+    // Get total orders (both regular and business)
+    const totalOrders = await Order.countDocuments() + await BusinessOrder.countDocuments();
+
+    // Get total products
+    const totalProducts = await Product.countDocuments();
+
+    // Get total categories
+    const totalCategories = await Category.countDocuments();
+
+    const dashboardStats = {
+      totalRevenue,
+      totalOrders,
+      totalProducts,
+      totalCategories
+    };
+
+    res.json(dashboardStats);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching dashboard stats', error: err.message });
+  }
+};
