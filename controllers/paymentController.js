@@ -107,15 +107,10 @@ exports.recordCODPayment = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order belongs to user
-    if (order.user.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
     // Create payment record
     const payment = await Payment.create({
       orderId: order._id,
-      userId: req.user.userId,
+      userId: order.user, // Use the order's user ID
       amount: order.total,
       paymentMethod: 'COD',
       status: 'PENDING'
