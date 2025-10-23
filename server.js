@@ -28,6 +28,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const businessOrderRoutes = require('./routes/businessOrderRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const sliderRoutes = require('./routes/sliderRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -39,6 +40,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/business-orders', businessOrderRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/sliders', sliderRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
