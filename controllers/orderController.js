@@ -71,7 +71,7 @@ exports.createOrder = async (req, res) => {
       schedule: isRecurring ? schedule : [],
       recurringOrders,
       total: cart.total,
-      paymentMode: 'COD'
+      paymentMethod: 'COD'
     });
 
     await Cart.findByIdAndDelete(cart._id);
