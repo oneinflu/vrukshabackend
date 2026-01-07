@@ -14,7 +14,7 @@ const checkoutSchema = new mongoose.Schema({
   endDate: { type: Date },
   schedule: [{
     type: String,
-    enum: ['mon', 'tue', 'wed', 'thurs', 'fri', 'sat', 'sun']
+    enum: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
   }],
   total: Number,
   paymentStatus: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Pending' }
