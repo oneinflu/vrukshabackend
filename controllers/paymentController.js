@@ -170,48 +170,139 @@ exports.createSimpleOrder = async (req, res) => {
       }));
       return res.status(500).json({ message: 'Razorpay configuration missing' });
     }
+
     const userId = req.user.userId;
-    const { amount, currency = 'INR' } = req.body;
+    const { amount, currency = 'INR', addressId, isRecurring, startDate, endDate, schedule } = req.body;
+
     console.log(JSON.stringify({
       event: 'payment_simple_order:start',
       time: new Date().toISOString(),
       userId,
       body: req.body
     }));
-    const numericAmount = Number(amount);
-    if (!numericAmount || numericAmount <= 0) {
+
+    // 1. Get User and Address
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use provided addressId or fallback to first saved address
+    const addressToUseId = addressId || (user.savedAddress && user.savedAddress.length > 0 ? user.savedAddress[0]._id : null);
+    
+    if (!addressToUseId) {
+       return res.status(400).json({ message: 'No address selected or available' });
+    }
+
+    const selectedAddress = user.savedAddress.id(addressToUseId);
+    if (!selectedAddress) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // 2. Get Cart and Calculate Total
+    const cart = await Cart.findOne({ user: userId }).populate('items.product');
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    const recalculatedTotal = cart.items.reduce((sum, item) => {
+      const price = item.variation?.price || 0;
+      const qty = item.quantity || 0;
+      return sum + price * qty;
+    }, 0);
+    
+    let effectiveTotal = typeof cart.total === 'number' && cart.total > 0 ? cart.total : recalculatedTotal;
+
+    // Handle Recurring Calculation
+    if (isRecurring) {
+      if (!startDate || !schedule || schedule.length === 0) {
+        return res.status(400).json({ message: 'Missing recurring order details (startDate, schedule)' });
+      }
+      
+      const deliveryDates = generateDeliveryDates(startDate, endDate, schedule);
+      const numberOfDeliveries = deliveryDates.length;
+      
+      if (numberOfDeliveries === 0) {
+        return res.status(400).json({ message: 'No delivery dates found for the selected schedule' });
+      }
+      
+      // Update effectiveTotal to be the grand total for all deliveries
+      effectiveTotal = effectiveTotal * numberOfDeliveries;
+      
+      console.log(JSON.stringify({
+        event: 'payment_simple_order:recurring_calc',
+        perDelivery: effectiveTotal / numberOfDeliveries,
+        numberOfDeliveries,
+        grandTotal: effectiveTotal
+      }));
+    }
+
+    if (!effectiveTotal || effectiveTotal <= 0) {
       console.error(JSON.stringify({
         event: 'payment_simple_order:invalid_amount',
         time: new Date().toISOString(),
-        amount
+        effectiveTotal
       }));
-      return res.status(400).json({ message: 'Invalid amount' });
+      return res.status(400).json({ message: 'Invalid cart total' });
     }
+
+    // 3. Create Razorpay Order
+    // Ensure receipt is within 40 chars: simple_{last4ofId}_{timestamp}
+    // simple_ = 7 chars
+    // last4ofId = 4 chars
+    // timestamp = 13 chars
+    // Total = 24 chars (safe)
+    const receiptId = `simple_${userId.toString().slice(-4)}_${Date.now()}`;
+    
     const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(numericAmount * 100),
+      amount: Math.round(effectiveTotal * 100),
       currency,
-      receipt: `rcpt_${Date.now()}_${userId.toString().slice(-4)}`,
+      receipt: receiptId,
       payment_capture: 1
     });
+
     console.log(JSON.stringify({
       event: 'payment_simple_order:razorpay_order_created',
       time: new Date().toISOString(),
       razorpayOrder
     }));
+
+    // 4. Create Checkout Record (Required for verifyPayment to create Order)
+    const checkout = await Checkout.create({
+      user: userId,
+      cart: cart._id,
+      shippingAddress: {
+        address: selectedAddress.address,
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        pincode: selectedAddress.pincode
+      },
+      isRecurring: !!isRecurring,
+      startDate: isRecurring ? new Date(startDate) : new Date(),
+      endDate: isRecurring && endDate ? new Date(endDate) : undefined,
+      schedule: isRecurring ? schedule : [],
+      total: effectiveTotal,
+      paymentStatus: 'Pending'
+    });
+
+    // 5. Create Payment Record
     const payment = await Payment.create({
       orderId: null,
-      checkoutId: null,
+      checkoutId: checkout._id, // Link to checkout
       userId,
-      amount: numericAmount,
+      amount: effectiveTotal,
       paymentMethod: 'RAZORPAY',
       razorpayOrderId: razorpayOrder.id,
       status: 'PENDING'
     });
+
     console.log(JSON.stringify({
       event: 'payment_simple_order:payment_record_created',
       time: new Date().toISOString(),
-      paymentId: payment._id
+      paymentId: payment._id,
+      checkoutId: checkout._id
     }));
+
     res.json({
       orderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
