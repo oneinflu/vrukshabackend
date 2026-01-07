@@ -159,6 +159,83 @@ exports.createCheckoutOrder = async (req, res) => {
   }
 };
 
+exports.createSimpleOrder = async (req, res) => {
+  try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error(JSON.stringify({
+        event: 'payment_simple_order:env_missing',
+        time: new Date().toISOString(),
+        has_key_id: !!process.env.RAZORPAY_KEY_ID,
+        has_key_secret: !!process.env.RAZORPAY_KEY_SECRET
+      }));
+      return res.status(500).json({ message: 'Razorpay configuration missing' });
+    }
+    const userId = req.user.userId;
+    const { amount, currency = 'INR' } = req.body;
+    console.log(JSON.stringify({
+      event: 'payment_simple_order:start',
+      time: new Date().toISOString(),
+      userId,
+      body: req.body
+    }));
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0) {
+      console.error(JSON.stringify({
+        event: 'payment_simple_order:invalid_amount',
+        time: new Date().toISOString(),
+        amount
+      }));
+      return res.status(400).json({ message: 'Invalid amount' });
+    }
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(numericAmount * 100),
+      currency,
+      receipt: `rcpt_${Date.now()}_${userId.toString().slice(-4)}`,
+      payment_capture: 1
+    });
+    console.log(JSON.stringify({
+      event: 'payment_simple_order:razorpay_order_created',
+      time: new Date().toISOString(),
+      razorpayOrder
+    }));
+    const payment = await Payment.create({
+      orderId: null,
+      checkoutId: null,
+      userId,
+      amount: numericAmount,
+      paymentMethod: 'RAZORPAY',
+      razorpayOrderId: razorpayOrder.id,
+      status: 'PENDING'
+    });
+    console.log(JSON.stringify({
+      event: 'payment_simple_order:payment_record_created',
+      time: new Date().toISOString(),
+      paymentId: payment._id
+    }));
+    res.json({
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      paymentId: payment._id
+    });
+  } catch (err) {
+    console.error(JSON.stringify({
+      event: 'payment_simple_order:error',
+      time: new Date().toISOString(),
+      message: err?.message,
+      code: err?.status || err?.error?.code,
+      description: err?.error?.description,
+      stack: err?.stack
+    }));
+    res.status(500).json({
+      message: 'Error creating payment order',
+      error: err?.message,
+      code: err?.status || err?.error?.code,
+      details: err?.error?.description
+    });
+  }
+};
+
 // Verify Razorpay payment
 exports.verifyPayment = async (req, res) => {
   try {

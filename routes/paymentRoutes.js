@@ -7,6 +7,7 @@ const adminAuth = require('../middleware/adminAuth');
 // User routes
 router.post('/create-order', auth, paymentController.createRazorpayOrder);
 router.post('/checkout', auth, paymentController.createCheckoutOrder);
+router.post('/simple-order', auth, paymentController.createSimpleOrder);
 router.post('/verify', auth, paymentController.verifyPayment);
 
 // Admin routes
