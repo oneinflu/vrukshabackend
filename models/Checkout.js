@@ -9,6 +9,13 @@ const checkoutSchema = new mongoose.Schema({
     state: String,
     pincode: String
   },
+  isRecurring: { type: Boolean, default: false },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  schedule: [{
+    type: String,
+    enum: ['mon', 'tue', 'wed', 'thurs', 'fri', 'sat', 'sun']
+  }],
   total: Number,
   paymentStatus: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Pending' }
 }, { timestamps: true });
