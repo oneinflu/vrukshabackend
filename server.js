@@ -9,6 +9,49 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  const origJson = res.json.bind(res);
+  const origSend = res.send.bind(res);
+  try {
+    console.log(JSON.stringify({
+      dir: 'req',
+      time: new Date().toISOString(),
+      method: req.method,
+      url: req.originalUrl,
+      body: req.body
+    }));
+  } catch (_) {}
+  res.json = (body) => {
+    try {
+      console.log(JSON.stringify({
+        dir: 'res',
+        time: new Date().toISOString(),
+        method: req.method,
+        url: req.originalUrl,
+        status: res.statusCode,
+        duration_ms: Number((process.hrtime.bigint() - start) / BigInt(1e6)),
+        body
+      }));
+    } catch (_) {}
+    return origJson(body);
+  };
+  res.send = (body) => {
+    try {
+      console.log(JSON.stringify({
+        dir: 'res',
+        time: new Date().toISOString(),
+        method: req.method,
+        url: req.originalUrl,
+        status: res.statusCode,
+        duration_ms: Number((process.hrtime.bigint() - start) / BigInt(1e6)),
+        body
+      }));
+    } catch (_) {}
+    return origSend(body);
+  };
+  next();
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {

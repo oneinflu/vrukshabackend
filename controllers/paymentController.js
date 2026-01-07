@@ -30,6 +30,9 @@ const generateDeliveryDates = (startDate, endDate, schedule) => {
 // Create Razorpay order
 exports.createRazorpayOrder = async (req, res) => {
   try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: 'Razorpay configuration missing' });
+    }
     const { orderId } = req.body;
 
     // Get order details
@@ -41,6 +44,10 @@ exports.createRazorpayOrder = async (req, res) => {
     // Check if order belongs to user
     if (order.user.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (!order.total || order.total <= 0) {
+      return res.status(400).json({ message: 'Invalid order total' });
     }
 
     // Create Razorpay order
@@ -75,6 +82,9 @@ exports.createRazorpayOrder = async (req, res) => {
 // Create Razorpay order directly from cart (checkout-first)
 exports.createCheckoutOrder = async (req, res) => {
   try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: 'Razorpay configuration missing' });
+    }
     const userId = req.user.userId;
     const { addressId, isRecurring, schedule = [], startDate, endDate } = req.body;
 
@@ -93,7 +103,16 @@ exports.createCheckoutOrder = async (req, res) => {
       return res.status(400).json({ message: 'Cart is empty' });
     }
 
-    const amountPaise = Math.round(cart.total * 100);
+    const recalculatedTotal = cart.items.reduce((sum, item) => {
+      const price = item.variation?.price || 0;
+      const qty = item.quantity || 0;
+      return sum + price * qty;
+    }, 0);
+    const effectiveTotal = typeof cart.total === 'number' && cart.total > 0 ? cart.total : recalculatedTotal;
+    if (!effectiveTotal || effectiveTotal <= 0) {
+      return res.status(400).json({ message: 'Invalid cart total' });
+    }
+    const amountPaise = Math.round(effectiveTotal * 100);
 
     const razorpayOrder = await razorpay.orders.create({
       amount: amountPaise,
@@ -115,7 +134,7 @@ exports.createCheckoutOrder = async (req, res) => {
       startDate: startDate ? new Date(startDate) : new Date(),
       endDate: endDate ? new Date(endDate) : undefined,
       schedule: isRecurring ? schedule : [],
-      total: cart.total,
+      total: effectiveTotal,
       paymentStatus: 'Pending'
     });
 
@@ -123,7 +142,7 @@ exports.createCheckoutOrder = async (req, res) => {
       orderId: null,
       checkoutId: checkout._id,
       userId,
-      amount: cart.total,
+      amount: effectiveTotal,
       paymentMethod: 'RAZORPAY',
       razorpayOrderId: razorpayOrder.id,
       status: 'PENDING'
