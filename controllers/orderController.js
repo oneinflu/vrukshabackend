@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const Payment = require('../models/Payment');
 
 // Helper function to generate delivery dates
 const generateDeliveryDates = (startDate, endDate, schedule) => {
@@ -160,7 +161,9 @@ exports.getOrderById = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    res.json(order);
+    const payment = await Payment.findOne({ orderId: order._id });
+
+    res.json({ ...order.toObject(), paymentDetails: payment });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching order', error: err.message });
   }
