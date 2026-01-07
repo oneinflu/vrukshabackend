@@ -35,3 +35,4 @@ logs
 
 # Optional eslint cache
 .eslintcache
+app/*

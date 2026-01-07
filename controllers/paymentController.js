@@ -15,7 +15,7 @@ const razorpay = new Razorpay({
 
 const generateDeliveryDates = (startDate, endDate, schedule) => {
   const deliveryDates = [];
-  const dayMapping = { mon: 1, tue: 2, wed: 3, thurs: 4, fri: 5, sat: 6, sun: 0 };
+  const dayMapping = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0 };
   const start = new Date(startDate);
   const end = endDate ? new Date(endDate) : new Date(start.getTime() + (30 * 24 * 60 * 60 * 1000));
   for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {

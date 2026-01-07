@@ -31,7 +31,7 @@ const orderSchema = new mongoose.Schema({
   endDate: { type: Date },
   schedule: [{
     type: String,
-    enum: ['mon', 'tue', 'wed', 'thurs', 'fri', 'sat', 'sun']
+    enum: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
   }],
   recurringOrders: [subOrderSchema],
   total: Number,
