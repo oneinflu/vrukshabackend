@@ -152,7 +152,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "https://clownfish-app-d64w7.ondigitalocean.app",
       "type": "string"
     },
     {
