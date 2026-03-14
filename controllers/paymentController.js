@@ -501,7 +501,7 @@ exports.verifyPayment = async (req, res) => {
 // Record COD payment
 exports.recordCODPayment = async (req, res) => {
   try {
-    const { orderId } = req.body;
+    const { orderId, status = 'SUCCESS' } = req.body;
 
     // Get order details
     const order = await Order.findById(orderId);
@@ -512,11 +512,20 @@ exports.recordCODPayment = async (req, res) => {
     // Create payment record
     const payment = await Payment.create({
       orderId: order._id,
-      userId: order.user, // Use the order's user ID
+      userId: order.user,
       amount: order.total,
       paymentMethod: 'COD',
-      status: 'PENDING'
+      status: status,
+      paidAt: status === 'SUCCESS' ? new Date() : undefined
     });
+
+    // Update order status if payment is successful
+    if (status === 'SUCCESS') {
+      order.paymentStatus = 'PAID';
+      // Also ensure the payment method on order is set to COD if not already
+      order.paymentMethod = 'COD';
+      await order.save();
+    }
 
     res.json({ message: 'COD payment recorded', payment });
   } catch (err) {
