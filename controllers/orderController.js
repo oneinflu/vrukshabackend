@@ -185,20 +185,33 @@ exports.getOrderById = async (req, res) => {
 // Update order status (admin only)
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, paymentMethod, paymentStatus } = req.body;
     const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    order.status = status;
+    if (status) order.status = status;
+    if (paymentMethod) order.paymentMethod = paymentMethod;
+    if (paymentStatus) order.paymentStatus = paymentStatus;
+
+    // Automatic logic: If COD and status updated to Delivered, mark as PAID
+    if (order.paymentMethod === 'COD' && order.status === 'Delivered' && !paymentStatus) {
+      order.paymentStatus = 'PAID';
+    }
+
     await order.save();
     await order.populate('user items.product');
 
     res.json(order);
   } catch (err) {
-    res.status(500).json({ message: 'Error updating order', error: err.message });
+    console.error('Update Order Status Error:', err);
+    res.status(500).json({ 
+      message: 'Error updating order', 
+      error: err.message,
+      details: err.errors ? Object.keys(err.errors).map(key => err.errors[key].message) : undefined
+    });
   }
 };
 
