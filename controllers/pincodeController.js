@@ -93,25 +93,33 @@ exports.checkPincode = async (req, res) => {
   try {
     const { pincode } = req.params;
     const record = await Pincode.findOne({ pincode });
+    
+    // Fetch all currently serviceable pincodes to show to the user
+    const serviceableList = await Pincode.find({ isServiceable: true })
+      .select('pincode area -_id')
+      .sort({ pincode: 1 });
 
     if (!record) {
       return res.status(200).json({ 
         serviceable: false, 
-        message: 'Sorry, we do not deliver to this pincode yet.' 
+        message: 'Sorry, we do not deliver to this pincode yet.',
+        serviceableAreas: serviceableList
       });
     }
 
     if (!record.isServiceable) {
       return res.status(200).json({ 
         serviceable: false, 
-        message: 'Delivery currently suspended for this pincode.' 
+        message: 'Delivery currently suspended for this pincode.',
+        serviceableAreas: serviceableList
       });
     }
 
     res.json({ 
       serviceable: true, 
       area: record.area,
-      message: 'Yes! We deliver to your location.' 
+      message: 'Yes! We deliver to your location.',
+      serviceableAreas: serviceableList
     });
   } catch (err) {
     res.status(500).json({ message: 'Error checking pincode', error: err.message });
