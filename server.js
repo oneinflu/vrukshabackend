@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+require('./config/firebase');
 
 const app = express();
 
@@ -74,6 +75,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const sliderRoutes = require('./routes/sliderRoutes');
 const pincodeRoutes = require('./routes/pincodeRoutes');
 const otpRoutes = require('./routes/otpRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -88,6 +90,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/sliders', sliderRoutes);
 app.use('/api/pincodes', pincodeRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

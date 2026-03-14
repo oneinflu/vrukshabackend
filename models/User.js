@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: false },
   isBusiness: { type: Boolean, default: false },
   profileImage: { type: String, default: null },
+  fcmToken: { type: String, default: null },
   savedAddress: [addressSchema]
 }, { timestamps: true });
 

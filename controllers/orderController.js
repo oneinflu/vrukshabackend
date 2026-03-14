@@ -3,6 +3,7 @@ const Cart = require('../models/Cart');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Pincode = require('../models/Pincode');
+const { sendNotification } = require('../config/firebase');
 
 // Helper function to generate delivery dates
 const generateDeliveryDates = (startDate, endDate, schedule) => {
@@ -211,6 +212,13 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
     await order.populate('user items.product');
+
+    // Send notification to user if status was updated
+    if (status && order.user && order.user.fcmToken) {
+      const title = `Order Update: ${status}`;
+      const body = `Your order #${order._id.toString().slice(-6)} status has been updated to ${status}.`;
+      await sendNotification(order.user.fcmToken, title, body, { orderId: order._id.toString() });
+    }
 
     res.json(order);
   } catch (err) {

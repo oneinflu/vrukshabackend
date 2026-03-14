@@ -46,7 +46,7 @@ exports.register = async (req, res) => {
 // Login user
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, fcmToken } = req.body;
 
     // Check if user exists
     const user = await User.findOne({ email });
@@ -60,6 +60,12 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Update FCM token if provided
+    if (fcmToken) {
+      user.fcmToken = fcmToken;
+      await user.save();
+    }
+
     // Generate token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -70,7 +76,8 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        isBusiness: user.isBusiness
+        isBusiness: user.isBusiness,
+        fcmToken: user.fcmToken
       }
     });
   } catch (err) {
@@ -143,6 +150,48 @@ exports.getAddresses = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({ addresses: user.savedAddress });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get current user profile
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isBusiness: user.isBusiness,
+        profileImage: user.profileImage,
+        savedAddress: user.savedAddress
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Update FCM Token
+exports.updateFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    const user = await User.findById(req.user.userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.fcmToken = fcmToken;
+    await user.save();
+
+    res.json({ message: 'FCM token updated successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

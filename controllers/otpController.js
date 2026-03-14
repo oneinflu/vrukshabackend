@@ -57,7 +57,7 @@ exports.sendOtp = async (req, res) => {
 // Verify OTP Endpoint
 exports.verifyOtp = async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, fcmToken } = req.body;
 
     if (!phone || !otp) {
       return res.status(400).json({ message: 'Phone and OTP are required' });
@@ -79,9 +79,13 @@ exports.verifyOtp = async (req, res) => {
       user = await User.create({
         phone,
         name: 'User ' + phone.slice(-4), // Default name
-        // email and password left empty/optional
+        fcmToken: fcmToken || null
       });
       isNewUser = true;
+    } else if (fcmToken) {
+      // Update FCM token if provided for existing user
+      user.fcmToken = fcmToken;
+      await user.save();
     }
 
     // Generate JWT
@@ -95,7 +99,8 @@ exports.verifyOtp = async (req, res) => {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        isBusiness: user.isBusiness
+        isBusiness: user.isBusiness,
+        fcmToken: user.fcmToken
       },
       isNewUser
     });
