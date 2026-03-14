@@ -8,10 +8,10 @@ const addressSchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String },  // Removed required: true to make it optional
-  password: { type: String, required: true },
+  name: { type: String, required: false }, // Name might be added later after OTP
+  email: { type: String, required: false, sparse: true }, // Sparse unique index
+  phone: { type: String, required: true, unique: true },
+  password: { type: String, required: false },
   isBusiness: { type: Boolean, default: false },
   profileImage: { type: String, default: null },
   savedAddress: [addressSchema]

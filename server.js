@@ -73,6 +73,7 @@ const statsRoutes = require('./routes/statsRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const sliderRoutes = require('./routes/sliderRoutes');
 const pincodeRoutes = require('./routes/pincodeRoutes');
+const otpRoutes = require('./routes/otpRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -86,6 +87,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/sliders', sliderRoutes);
 app.use('/api/pincodes', pincodeRoutes);
+app.use('/api/otp', otpRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

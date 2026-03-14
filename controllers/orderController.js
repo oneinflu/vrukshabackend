@@ -44,9 +44,14 @@ exports.createOrder = async (req, res) => {
       isServiceable: true 
     });
     if (!serviceablePincode) {
+      const serviceableList = await Pincode.find({ isServiceable: true })
+        .select('pincode area -_id')
+        .sort({ pincode: 1 });
       return res.status(400).json({ 
+        serviceable: false,
         message: 'Sorry, we do not deliver to this pincode yet.',
-        pincode: selectedAddress.pincode
+        pincode: selectedAddress.pincode,
+        serviceableAreas: serviceableList
       });
     }
 
