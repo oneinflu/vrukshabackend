@@ -83,10 +83,22 @@ exports.createRazorpayOrder = async (req, res) => {
 exports.createCheckoutOrder = async (req, res) => {
   try {
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error(JSON.stringify({
+        event: 'payment_checkout_order:env_missing',
+        time: new Date().toISOString()
+      }));
       return res.status(500).json({ message: 'Razorpay configuration missing' });
     }
+
     const userId = req.user.userId;
     const { addressId, isRecurring, schedule = [], startDate, endDate } = req.body;
+
+    console.log(JSON.stringify({
+      event: 'payment_checkout_order:start',
+      time: new Date().toISOString(),
+      userId,
+      body: req.body
+    }));
 
     const user = await User.findById(userId);
     if (!user) {
@@ -108,18 +120,59 @@ exports.createCheckoutOrder = async (req, res) => {
       const qty = item.quantity || 0;
       return sum + price * qty;
     }, 0);
-    const effectiveTotal = typeof cart.total === 'number' && cart.total > 0 ? cart.total : recalculatedTotal;
+
+    let effectiveTotal = typeof cart.total === 'number' && cart.total > 0 ? cart.total : recalculatedTotal;
+
+    // Handle Recurring Calculation (Ensuring sync with createSimpleOrder)
+    if (isRecurring) {
+      if (!startDate || !schedule || schedule.length === 0) {
+        return res.status(400).json({ message: 'Missing recurring order details (startDate, schedule)' });
+      }
+      
+      const deliveryDates = generateDeliveryDates(startDate, endDate, schedule);
+      const numberOfDeliveries = deliveryDates.length;
+      
+      if (numberOfDeliveries === 0) {
+        return res.status(400).json({ message: 'No delivery dates found for the selected schedule' });
+      }
+      
+      // Update effectiveTotal to be the grand total for all deliveries
+      effectiveTotal = effectiveTotal * numberOfDeliveries;
+      
+      console.log(JSON.stringify({
+        event: 'payment_checkout_order:recurring_calc',
+        perDelivery: effectiveTotal / numberOfDeliveries,
+        numberOfDeliveries,
+        grandTotal: effectiveTotal
+      }));
+    }
+
     if (!effectiveTotal || effectiveTotal <= 0) {
+      console.error(JSON.stringify({
+        event: 'payment_checkout_order:invalid_amount',
+        time: new Date().toISOString(),
+        effectiveTotal
+      }));
       return res.status(400).json({ message: 'Invalid cart total' });
     }
+
     const amountPaise = Math.round(effectiveTotal * 100);
+    // Ensure receipt ID is within 40 chars
+    const receiptId = `ckout_${userId.toString().slice(-4)}_${Date.now()}`;
 
     const razorpayOrder = await razorpay.orders.create({
       amount: amountPaise,
       currency: 'INR',
-      receipt: `checkout_${userId}_${Date.now()}`,
+      receipt: receiptId,
       payment_capture: 1
     });
+
+    console.log(JSON.stringify({
+      event: 'payment_checkout_order:razorpay_order_created',
+      time: new Date().toISOString(),
+      razorpayOrderId: razorpayOrder.id,
+      receiptId
+    }));
 
     const checkout = await Checkout.create({
       user: userId,
@@ -155,7 +208,20 @@ exports.createCheckoutOrder = async (req, res) => {
       paymentId: payment._id
     });
   } catch (err) {
-    res.status(500).json({ message: 'Error creating checkout', error: err.message });
+    console.error(JSON.stringify({
+      event: 'payment_checkout_order:error',
+      time: new Date().toISOString(),
+      message: err?.message,
+      code: err?.status || err?.error?.code,
+      description: err?.error?.description,
+      stack: err?.stack
+    }));
+    res.status(500).json({ 
+      message: 'Error creating checkout', 
+      error: err.message,
+      code: err?.status || err?.error?.code,
+      details: err?.error?.description 
+    });
   }
 };
 
