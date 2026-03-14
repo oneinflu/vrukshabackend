@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
+const Pincode = require('../models/Pincode');
 
 // Helper function to generate delivery dates
 const generateDeliveryDates = (startDate, endDate, schedule) => {
@@ -35,6 +36,18 @@ exports.createOrder = async (req, res) => {
     const selectedAddress = user.savedAddress.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // Check if pincode is serviceable
+    const serviceablePincode = await Pincode.findOne({ 
+      pincode: selectedAddress.pincode, 
+      isServiceable: true 
+    });
+    if (!serviceablePincode) {
+      return res.status(400).json({ 
+        message: 'Sorry, we do not deliver to this pincode yet.',
+        pincode: selectedAddress.pincode
+      });
     }
 
     const cart = await Cart.findOne({ user: userId }).populate('items.product');

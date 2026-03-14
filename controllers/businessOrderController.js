@@ -1,6 +1,7 @@
 const BusinessOrder = require('../models/BusinessOrder');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const Pincode = require('../models/Pincode');
 
 // Create business order request
 exports.createBusinessOrder = async (req, res) => {
@@ -17,6 +18,18 @@ exports.createBusinessOrder = async (req, res) => {
     const selectedAddress = user.savedAddress.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // Check if pincode is serviceable
+    const serviceablePincode = await Pincode.findOne({ 
+      pincode: selectedAddress.pincode, 
+      isServiceable: true 
+    });
+    if (!serviceablePincode) {
+      return res.status(400).json({ 
+        message: 'Sorry, we do not deliver to this pincode yet.',
+        pincode: selectedAddress.pincode
+      });
     }
 
     // Get cart items

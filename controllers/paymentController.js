@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Checkout = require('../models/Checkout');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const Pincode = require('../models/Pincode');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
@@ -108,6 +109,18 @@ exports.createCheckoutOrder = async (req, res) => {
     const selectedAddress = user.savedAddress.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // Check if pincode is serviceable
+    const serviceablePincode = await Pincode.findOne({ 
+      pincode: selectedAddress.pincode, 
+      isServiceable: true 
+    });
+    if (!serviceablePincode) {
+      return res.status(400).json({ 
+        message: 'Sorry, we do not deliver to this pincode yet.',
+        pincode: selectedAddress.pincode
+      });
     }
 
     const cart = await Cart.findOne({ user: userId }).populate('items.product');
@@ -263,6 +276,18 @@ exports.createSimpleOrder = async (req, res) => {
     const selectedAddress = user.savedAddress.id(addressToUseId);
     if (!selectedAddress) {
       return res.status(404).json({ message: 'Address not found' });
+    }
+
+    // Check if pincode is serviceable
+    const serviceablePincode = await Pincode.findOne({ 
+      pincode: selectedAddress.pincode, 
+      isServiceable: true 
+    });
+    if (!serviceablePincode) {
+      return res.status(400).json({ 
+        message: 'Sorry, we do not deliver to this pincode yet.',
+        pincode: selectedAddress.pincode
+      });
     }
 
     // 2. Get Cart and Calculate Total

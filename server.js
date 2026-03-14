@@ -72,6 +72,7 @@ const businessOrderRoutes = require('./routes/businessOrderRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const sliderRoutes = require('./routes/sliderRoutes');
+const pincodeRoutes = require('./routes/pincodeRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -84,6 +85,7 @@ app.use('/api/business-orders', businessOrderRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/sliders', sliderRoutes);
+app.use('/api/pincodes', pincodeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
