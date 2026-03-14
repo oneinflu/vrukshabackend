@@ -11,5 +11,6 @@ router.post('/add', adminAuth, pincodeController.addPincode);
 router.put('/update/:id', adminAuth, pincodeController.updatePincode);
 router.delete('/:id', adminAuth, pincodeController.deletePincode);
 router.get('/all', adminAuth, pincodeController.getAllPincodes);
+router.get('/:id', adminAuth, pincodeController.getPincodeById);
 
 module.exports = router;

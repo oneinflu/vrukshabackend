@@ -74,6 +74,20 @@ exports.getAllPincodes = async (req, res) => {
   }
 };
 
+// Get single pincode by ID (Admin)
+exports.getPincodeById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pincode = await Pincode.findById(id);
+    if (!pincode) {
+      return res.status(404).json({ message: 'Pincode not found' });
+    }
+    res.json(pincode);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching pincode', error: err.message });
+  }
+};
+
 // Check if a pincode is serviceable (Public)
 exports.checkPincode = async (req, res) => {
   try {
