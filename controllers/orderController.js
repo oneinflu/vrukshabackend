@@ -185,7 +185,7 @@ exports.getOrderById = async (req, res) => {
 // Update order status (admin only)
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status, paymentMethod, paymentStatus } = req.body;
+    const { status } = req.body;
     const order = await Order.findById(req.params.id);
 
     if (!order) {
@@ -193,11 +193,14 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     if (status) order.status = status;
-    if (paymentMethod) order.paymentMethod = paymentMethod;
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+
+    // To prevent the "paymentMethod is required" error on older/incomplete records
+    if (!order.paymentMethod) {
+      order.paymentMethod = 'COD';
+    }
 
     // Automatic logic: If COD and status updated to Delivered, mark as PAID
-    if (order.paymentMethod === 'COD' && order.status === 'Delivered' && !paymentStatus) {
+    if (order.paymentMethod === 'COD' && order.status === 'Delivered') {
       order.paymentStatus = 'PAID';
     }
 
