@@ -1,6 +1,21 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cloudinary = require('../config/cloudinary');
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Configure Cloudinary storage for profile images
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'profile-images',
+    allowed_formats: ['jpg', 'png', 'jpeg']
+  }
+});
+
+exports.uploadProfileImage = multer({ storage: storage });
+
 
 // Register new user
 exports.register = async (req, res) => {
@@ -194,5 +209,59 @@ exports.updateFcmToken = async (req, res) => {
     res.json({ message: 'FCM token updated successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Update user profile (name, email, profileImage)
+exports.updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { name, email } = req.body;
+
+    // Update name if provided
+    if (name !== undefined) {
+      user.name = name;
+    }
+
+    // Update email if provided
+    if (email !== undefined) {
+      user.email = email;
+    }
+
+    // Handle profile image upload
+    if (req.file) {
+      // Delete old profile image from Cloudinary if exists
+      if (user.profileImage) {
+        try {
+          const publicId = 'profile-images/' + user.profileImage.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error('Error deleting old profile image:', err.message);
+        }
+      }
+      // Set new profile image URL from Cloudinary
+      user.profileImage = req.file.path;
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isBusiness: user.isBusiness,
+        profileImage: user.profileImage,
+        savedAddress: user.savedAddress
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating profile', error: err.message });
   }
 };

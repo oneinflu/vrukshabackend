@@ -15,5 +15,6 @@ router.post('/address', auth, authController.addAddress);
 router.put('/address/:addressId', auth, authController.updateAddress);
 router.delete('/address/:addressId', auth, authController.deleteAddress);
 router.put('/fcm-token', auth, authController.updateFcmToken);
+router.put('/profile', auth, authController.uploadProfileImage.single('profileImage'), authController.updateProfile);
 
 module.exports = router;

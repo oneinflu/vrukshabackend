@@ -37,6 +37,7 @@ logs
 .eslintcache
 app/*
 
+config/firebase-service-account.json
 config/firebase.json
 .env
 env
